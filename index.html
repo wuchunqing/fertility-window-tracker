@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fertility Window Tracker — Ovulation & Conception Calculator</title>
+  <meta name="description" content="Track your fertile window, ovulation day, and peak conception days. ASRM-based cycle calculator with visual timeline for regular and irregular cycles.">
+  <meta name="google-site-verification" content="uz_j2c_UOuyTXyW6W87egnN8gHCyfSqm3kyY_XEx62w" />
+  <meta name="theme-color" content="#DB2777">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+    :root{
+      --primary:#DB2777;--primary-dark:#BE185D;--primary-light:#FDF2F8;
+      --accent:#7C3AED;--teal:#14B8A6;--ink:#1E1B4B;--muted:#64748B;--line:#E2E8F0;
+      --bg:#FFFBFC;--card:#fff;--radius:16px;
+      --shadow:0 8px 32px rgba(219,39,119,.09);
+      --fertile:#F472B6;--fertile-bg:#FDF2F8;--ovu:#DB2777;--period:#FCA5A5;
+      --low:#94A3B8;--peak:#BE185D;--ok:#059669;
+    }
+    body{margin:0;font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.65;font-size:15px;overflow:hidden}
+    #app-shell{position:fixed;inset:0;overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch;z-index:2147483647;background:var(--bg)}
+    #main-app{position:relative;z-index:10;pointer-events:auto}
+    .card,.sidebar-card,.guide-card,details{position:relative;pointer-events:auto}
+    .container{max-width:1080px;margin:0 auto;padding:0 20px}
+    header{background:rgba(255,255,255,.93);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);padding:16px 0;position:sticky;top:0;z-index:50}
+    .logo{font-size:20px;font-weight:800;color:var(--primary);text-decoration:none}
+    .hero{padding:40px 0 22px;text-align:center;background:linear-gradient(165deg,#FCE7F3 0%,#F5F3FF 45%,#FFFBFC 100%)}
+    .hero-badge{display:inline-block;background:var(--primary-light);color:var(--primary-dark);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;padding:6px 14px;border-radius:999px;border:1px solid #FBCFE8;margin-bottom:12px}
+    .hero h1{font-size:clamp(26px,4vw,36px);font-weight:800;letter-spacing:-.03em;margin-bottom:8px}
+    .hero p{max-width:600px;margin:0 auto;color:var(--muted);font-size:15px}
+    .layout{display:grid;grid-template-columns:1fr 280px;gap:24px;align-items:start;margin-bottom:32px}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);padding:28px}
+    .card h2{font-size:18px;font-weight:800;margin-bottom:4px}
+    .card .sub{font-size:13px;color:var(--muted);margin-bottom:20px}
+    .form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:16px}
+    label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:5px}
+    .input,.select{width:100%;padding:12px 13px;border:1.5px solid var(--line);border-radius:11px;font:inherit;font-size:14px;font-weight:600;background:#fff;outline:none;pointer-events:auto;-webkit-user-select:text;user-select:text}
+    .input:focus,.select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(219,39,119,.12)}
+    .select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath fill='%2364748B' d='M0 0l6 8 6-8z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+    .hint{font-size:12px;color:var(--muted);padding:11px 12px;background:#F8FAFC;border-radius:10px;border-left:3px solid var(--teal);margin-bottom:16px}
+    .btn-row{display:flex;gap:10px;flex-wrap:wrap}
+    .btn-main{flex:1;min-width:140px;padding:14px 20px;background:linear-gradient(135deg,#EC4899,#DB2777);color:#fff;border:none;border-radius:11px;font:inherit;font-size:15px;font-weight:800;cursor:pointer;touch-action:manipulation;pointer-events:auto}
+    .btn-main:hover{filter:brightness(1.05)}
+    .btn-main:disabled{opacity:.65;cursor:wait}
+    .btn-ghost{padding:14px 20px;border:1.5px solid var(--line);border-radius:11px;background:#fff;font:inherit;font-size:14px;font-weight:700;cursor:pointer;color:var(--muted);touch-action:manipulation;pointer-events:auto}
+    .results{display:none;margin-top:24px;padding-top:22px;border-top:1px solid var(--line)}
+    .results.show{display:block}
+    .result-hero{text-align:center;background:linear-gradient(145deg,#EC4899,#7C3AED);color:#fff;border-radius:18px;padding:26px;margin-bottom:16px}
+    .result-hero .lbl{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;opacity:.92}
+    .result-hero .val{font-size:clamp(22px,5vw,32px);font-weight:900;line-height:1.2;margin:8px 0 4px}
+    .result-hero .sub{font-size:14px;opacity:.9}
+    .result-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+    .result-cell{background:#F8FAFC;border:1px solid var(--line);border-radius:12px;padding:14px;text-align:center}
+    .result-cell .k{font-size:10px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+    .result-cell .v{font-size:15px;font-weight:800}
+    .result-cell .v.peak{color:var(--peak)}
+    .result-cell .v.ok{color:var(--ok)}
+    .cycle-bar-wrap{margin:18px 0 8px}
+    .cycle-bar-label{font-size:11px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:8px;display:flex;justify-content:space-between}
+    .cycle-bar{display:flex;height:28px;border-radius:999px;overflow:hidden;border:1px solid var(--line)}
+    .cycle-seg{flex:1;min-width:0;transition:flex .2s}
+    .cycle-seg.period{background:var(--period)}
+    .cycle-seg.follicular{background:#E0E7FF}
+    .cycle-seg.fertile{background:var(--fertile)}
+    .cycle-seg.ovu{background:var(--ovu)}
+    .cycle-seg.luteal{background:#F1F5F9}
+    .cycle-legend{display:flex;flex-wrap:wrap;gap:12px;margin:12px 0 18px;font-size:11px;font-weight:600;color:var(--muted)}
+    .cycle-legend span{display:flex;align-items:center;gap:5px}
+    .cycle-legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+    .day-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:6px}
+    .day-head{font-size:10px;font-weight:700;text-transform:uppercase;color:var(--muted);text-align:center;padding:4px 0}
+    .day-cell{aspect-ratio:1;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:11px;font-weight:700;border:1.5px solid transparent;position:relative;min-height:44px}
+    .day-cell .dn{font-size:13px;font-weight:800}
+    .day-cell .ds{font-size:8px;font-weight:600;text-transform:uppercase;opacity:.75;margin-top:1px}
+    .day-cell.empty{visibility:hidden}
+    .day-cell.period{background:#FEE2E2;border-color:#FECACA;color:#991B1B}
+    .day-cell.fertile{background:var(--fertile-bg);border-color:#F9A8D4;color:#9D174D}
+    .day-cell.peak{background:linear-gradient(145deg,#F472B6,#DB2777);color:#fff;border-color:var(--ovu)}
+    .day-cell.ovu{background:var(--ovu);color:#fff;border-color:var(--primary-dark);box-shadow:0 0 0 2px rgba(219,39,119,.3)}
+    .day-cell.low{background:#F8FAFC;border-color:var(--line);color:var(--muted)}
+    .day-cell.today{box-shadow:0 0 0 2px var(--accent)}
+    .day-cell.today::after{content:'';position:absolute;top:3px;right:3px;width:5px;height:5px;background:var(--accent);border-radius:50%}
+    .summary-table{width:100%;border-collapse:collapse;font-size:14px}
+    .summary-table td{padding:9px 0;border-bottom:1px solid var(--line)}
+    .summary-table td:first-child{color:var(--muted);font-weight:600;width:48%}
+    .summary-table td:last-child{font-weight:700;text-align:right}
+    .note-box{margin-top:14px;padding:12px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;font-size:12px;color:#92400E;line-height:1.6}
+    .tip-box{margin-top:12px;padding:12px;background:var(--primary-light);border:1px solid #FBCFE8;border-radius:10px;font-size:13px;color:var(--primary-dark);line-height:1.6}
+    .sidebar{display:flex;flex-direction:column;gap:14px}
+    .sidebar-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px}
+    .sidebar-card h3{font-size:14px;font-weight:800;margin-bottom:10px}
+    .ref-table{width:100%;font-size:12px;border-collapse:collapse}
+    .ref-table td{padding:6px 0;border-bottom:1px dashed var(--line)}
+    .ref-table td:last-child{text-align:right;font-weight:700}
+    .guide-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin:24px 0}
+    .guide-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px}
+    .guide-card h2{font-size:16px;font-weight:800;margin-bottom:8px}
+    .guide-card p,.guide-card li{font-size:14px;color:var(--muted)}
+    details{background:#fff;border:1px solid var(--line);border-radius:12px;margin-bottom:8px}
+    details[open]{border-color:var(--primary)}
+    summary{padding:13px 16px;font-weight:700;cursor:pointer;list-style:none;font-size:14px}
+    summary::-webkit-details-marker{display:none}
+    details p{padding:0 16px 14px;font-size:13px;color:var(--muted);line-height:1.65}
+    footer{text-align:center;padding:24px;color:var(--muted);font-size:13px;border-top:1px solid var(--line);background:#fff}
+    .ad-top,.ad-sidebar{display:flex;justify-content:center;align-items:center;margin:12px auto;overflow:hidden!important;position:relative;z-index:1;isolation:isolate;flex-shrink:0;contain:strict}
+    .ad-top{width:100%;max-width:728px;height:90px!important;max-height:90px!important;min-height:90px}
+    .ad-sidebar{width:100%;max-width:300px;height:250px!important;max-height:250px!important;min-height:250px;border-radius:var(--radius)}
+    .ad-top>*,.ad-sidebar>*{max-height:100%!important;overflow:hidden!important;pointer-events:auto}
+    .ad-top iframe,.ad-sidebar iframe{max-width:100%!important;max-height:100%!important;border:0;display:block}
+    @media(max-width:860px){.layout,.form-grid,.result-grid,.guide-grid{grid-template-columns:1fr}}
+    @media(max-width:480px){.day-grid{gap:4px}.day-cell{min-height:38px;border-radius:8px}.day-cell .dn{font-size:11px}}
+  </style>
+</head>
+<body>
+<div id="app-shell">
+<header><div class="container"><a href="#" class="logo">Fertility Window Tracker</a></div></header>
+
+<section class="hero">
+  <div class="container">
+    <span class="hero-badge">Preconception tools</span>
+    <h1>Fertility Window Tracker</h1>
+    <p>Find your ovulation day, peak conception dates, and full fertile window from your last period and cycle length. Educational use only — not a substitute for medical advice.</p>
+  </div>
+</section>
+
+<div class="container">
+  <div class="ad-top" id="ad-top"></div>
+</div>
+
+<div id="main-app">
+<div class="container">
+  <div class="layout">
+    <main class="card">
+      <h2>Track your fertile window</h2>
+      <p class="sub">Based on ASRM-style cycle math: ovulation ≈ cycle length − 14 days, with a 6-day fertile window.</p>
+
+      <div class="form-grid">
+        <div>
+          <label for="lmpDate">First day of last period (LMP)</label>
+          <input class="input" type="date" id="lmpDate">
+        </div>
+        <div>
+          <label for="cycleLength">Average cycle length (days)</label>
+          <select class="select" id="cycleLength">
+            <option value="21">21 days (short)</option>
+            <option value="24">24 days</option>
+            <option value="26">26 days</option>
+            <option value="28" selected>28 days (average)</option>
+            <option value="30">30 days</option>
+            <option value="32">32 days</option>
+            <option value="35">35 days (long)</option>
+            <option value="custom">Custom…</option>
+          </select>
+        </div>
+        <div id="customCycleWrap" style="display:none">
+          <label for="customCycle">Custom cycle length</label>
+          <input class="input" type="number" id="customCycle" value="28" min="18" max="45" step="1" inputmode="numeric">
+        </div>
+        <div>
+          <label for="cycleRegular">Cycle regularity</label>
+          <select class="select" id="cycleRegular">
+            <option value="regular" selected>Regular (±2 days)</option>
+            <option value="irregular">Irregular (±7+ days)</option>
+          </select>
+        </div>
+        <div>
+          <label for="trackMethod">Tracking method</label>
+          <select class="select" id="trackMethod">
+            <option value="lmp" selected>Period date (LMP)</option>
+            <option value="bbt">Basal body temperature (BBT)</option>
+            <option value="opk">Ovulation test (OPK)</option>
+          </select>
+        </div>
+      </div>
+      <p class="hint">Sperm can survive 3–5 days; the egg lasts ~12–24 hours. Intercourse in the days <em>before</em> ovulation gives the best natural conception odds.</p>
+
+      <div class="btn-row">
+        <button type="button" class="btn-main" id="btnCalc" onclick="calculate()">Calculate fertile window</button>
+        <button type="button" class="btn-ghost" onclick="resetForm()">Reset</button>
+      </div>
+
+      <div class="results" id="results"></div>
+    </main>
+
+    <aside class="sidebar">
+      <div class="sidebar-card">
+        <h3>Cycle phase guide</h3>
+        <table class="ref-table">
+          <tr><td>Menstruation</td><td>Days 1–5</td></tr>
+          <tr><td>Follicular</td><td>Pre-ovulation</td></tr>
+          <tr><td>Fertile window</td><td>5 days before ovu</td></tr>
+          <tr><td>Ovulation</td><td>Peak day</td></tr>
+          <tr><td>Luteal phase</td><td>~14 days after ovu</td></tr>
+        </table>
+      </div>
+      <div class="sidebar-card">
+        <h3>Quick example</h3>
+        <p style="font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:10px">28-day cycle · Regular · LMP ~2 weeks ago → ovulation around day 14, fertile window days 9–15.</p>
+        <button type="button" class="btn-ghost" style="width:100%" onclick="loadExample()">Load example</button>
+      </div>
+      <div class="sidebar-card">
+        <h3>Boost conception odds</h3>
+        <ul style="list-style:none;font-size:12px;color:var(--muted);line-height:1.9">
+          <li>· Start folic acid 3+ months early</li>
+          <li>· Intercourse every other day in fertile window</li>
+          <li>· Limit caffeine to &lt;200 mg/day</li>
+          <li>· Pair with OPK or BBT if irregular</li>
+        </ul>
+      </div>
+      <div class="ad-sidebar" id="ad-sidebar"></div>
+    </aside>
+  </div>
+
+  <section class="guide-grid">
+    <div class="guide-card">
+      <h2>How it works</h2>
+      <p>We estimate ovulation as your cycle length minus 14 days (luteal phase rule). The fertile window spans 5 days before ovulation through 1 day after, when sperm and egg can meet. Irregular cycles widen the uncertainty band — combine with OPK tests for precision.</p>
+    </div>
+    <div class="guide-card">
+      <h2>Important note</h2>
+      <p>This tracker uses population averages, not your unique hormones. PCOS, stress, travel, and illness can shift ovulation. Always discuss conception planning with your OB/GYN or fertility specialist.</p>
+    </div>
+  </section>
+
+  <section style="margin-bottom:28px">
+    <h2 style="font-size:18px;font-weight:800;margin-bottom:12px">FAQ</h2>
+    <details>
+      <summary>Why is the fertile window 6–7 days, not just ovulation day?</summary>
+      <p>Sperm live up to 5 days in the reproductive tract, while the egg is viable for only 12–24 hours after release. Having intercourse before ovulation lets sperm wait for the egg.</p>
+    </details>
+    <details>
+      <summary>How accurate is LMP-based tracking?</summary>
+      <p>For regular 26–32 day cycles, estimates are reasonably close. Irregular cycles benefit from ovulation predictor kits (OPK) or basal body temperature (BBT) charts.</p>
+    </details>
+    <details>
+      <summary>When should we have intercourse?</summary>
+      <p>Every other day during the fertile window maintains sperm quality without depletion. The 2 days before ovulation typically offer the highest conception probability.</p>
+    </details>
+    <details>
+      <summary>When should I see a fertility specialist?</summary>
+      <p>Under 35: after 12 months of trying. Age 35+: after 6 months. Sooner if cycles are very irregular, painful, or absent.</p>
+    </details>
+  </section>
+</div>
+</div>
+
+<footer>
+  <div class="container">Fertility Window Tracker — inspired by <a href="https://glowcalculator.com/ovulation-calculator/" style="color:var(--primary)">Glow Calculator</a> &amp; ASRM guidelines. Not medical advice.</div>
+</footer>
+</div>
+
+<script>
+function byId(id){return document.getElementById(id);}
+
+function addDays(d,n){
+  const r=new Date(d);
+  r.setDate(r.getDate()+n);
+  return r;
+}
+
+function sameDay(a,b){
+  return a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate();
+}
+
+function formatDate(d){
+  return d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
+}
+
+function formatShort(d){
+  return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+}
+
+function getCycleDays(){
+  const sel=byId('cycleLength').value;
+  if(sel==='custom')return parseInt(byId('customCycle').value,10)||28;
+  return parseInt(sel,10);
+}
+
+function classifyDay(cycleDay,ovuDay,cycleLen){
+  if(cycleDay<=5)return'period';
+  if(cycleDay===ovuDay)return'ovu';
+  if(cycleDay>=ovuDay-2&&cycleDay<=ovuDay+1)return'peak';
+  if(cycleDay>=ovuDay-5&&cycleDay<=ovuDay+1)return'fertile';
+  return'low';
+}
+
+function dayLabel(cls){
+  if(cls==='period')return'Menstrual';
+  if(cls==='ovu')return'Ovulation';
+  if(cls==='peak')return'Peak';
+  if(cls==='fertile')return'Fertile';
+  return'Low';
+}
+
+function compute(lmpStr,cycleLen,regular,method){
+  const lmp=new Date(lmpStr+'T12:00:00');
+  const ovuOffset=cycleLen-14;
+  const ovulation=addDays(lmp,ovuOffset);
+  const fertileStart=addDays(ovulation,-5);
+  const fertileEnd=addDays(ovulation,1);
+  const peakStart=addDays(ovulation,-2);
+  const peakEnd=ovulation;
+  const nextPeriod=addDays(lmp,cycleLen);
+  const ovuCycleDay=ovuOffset+1;
+
+  const odds=regular==='regular'?'20–25% per cycle':'10–15% per cycle';
+  const accuracy=regular==='regular'?'Moderate (±1–2 days)':'Low (±3–7 days)';
+
+  let methodTip='Period-date tracking is a solid starting point for regular cycles.';
+  if(method==='bbt')methodTip='Confirm ovulation with 3+ days of elevated BBT after the predicted window.';
+  if(method==='opk')methodTip='Start OPK testing 4–5 days before predicted ovulation; peak LH confirms timing.';
+
+  let advice=regular==='regular'
+    ?'Your regular cycle supports reliable predictions. Try intercourse every other day from '+formatShort(fertileStart)+' to '+formatShort(fertileEnd)+'.'
+    :'Irregular cycles need backup tracking. Use OPK tests starting ~5 days before the estimated ovulation date.';
+
+  const today=new Date();today.setHours(12,0,0,0);
+  const days=[];
+  for(let i=0;i<cycleLen;i++){
+    const date=addDays(lmp,i);
+    const cycleDay=i+1;
+    const cls=classifyDay(cycleDay,ovuCycleDay,cycleLen);
+    days.push({date,cycleDay,cls,isToday:sameDay(date,today)});
+  }
+
+  const periodDays=5;
+  const follicularDays=Math.max(0,ovuCycleDay-6-periodDays);
+  const fertileDays=7;
+  const lutealDays=Math.max(0,cycleLen-ovuCycleDay-1);
+
+  return{
+    lmp,ovulation,fertileStart,fertileEnd,peakStart,peakEnd,nextPeriod,
+    ovuCycleDay,cycleLen,odds,accuracy,methodTip,advice,days,
+    segments:{period:periodDays,follicular:follicularDays,fertile:fertileDays,ovu:1,luteal:lutealDays}
+  };
+}
+
+function buildCalendar(days){
+  if(!days.length)return'';
+  const first=days[0].date;
+  const startPad=(first.getDay()+6)%7;
+  let html='<div class="day-grid">';
+  ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].forEach(d=>{html+='<div class="day-head">'+d+'</div>';});
+  for(let i=0;i<startPad;i++)html+='<div class="day-cell empty"></div>';
+  days.forEach(d=>{
+    const cls=d.cls+(d.isToday?' today':'');
+    html+='<div class="day-cell '+cls+'" title="'+formatDate(d.date)+'"><span class="dn">'+d.date.getDate()+'</span><span class="ds">'+dayLabel(d.cls)+'</span></div>';
+  });
+  html+='</div>';
+  return html;
+}
+
+function buildCycleBar(seg){
+  const total=seg.period+seg.follicular+seg.fertile+seg.ovu+seg.luteal||1;
+  return'<div class="cycle-bar">'
+    +'<div class="cycle-seg period" style="flex:'+seg.period+'" title="Menstruation"></div>'
+    +'<div class="cycle-seg follicular" style="flex:'+seg.follicular+'" title="Follicular"></div>'
+    +'<div class="cycle-seg fertile" style="flex:'+(seg.fertile-1)+'" title="Fertile window"></div>'
+    +'<div class="cycle-seg ovu" style="flex:'+seg.ovu+'" title="Ovulation"></div>'
+    +'<div class="cycle-seg luteal" style="flex:'+seg.luteal+'" title="Luteal phase"></div>'
+    +'</div>';
+}
+
+function readForm(){
+  return{
+    lmp:byId('lmpDate').value,
+    cycle:getCycleDays(),
+    regular:byId('cycleRegular').value,
+    method:byId('trackMethod').value
+  };
+}
+
+function calculate(){
+  try{
+    const{ lmp,cycle,regular,method }=readForm();
+    const res=byId('results');
+    const btn=byId('btnCalc');
+
+    if(!lmp){alert('Please enter the first day of your last menstrual period.');return;}
+    if(!isFinite(cycle)||cycle<18||cycle>45){alert('Cycle length should be between 18 and 45 days.');return;}
+
+    btn.disabled=true;
+    const r=compute(lmp,cycle,regular,method);
+    const methodLabel={lmp:'Period date (LMP)',bbt:'BBT chart',opk:'Ovulation test (OPK)'}[method];
+    const regularLabel=regular==='regular'?'Regular (±2 days)':'Irregular (±7+ days)';
+
+    res.innerHTML=`
+      <div class="result-hero">
+        <div class="lbl">Predicted ovulation</div>
+        <div class="val">${formatDate(r.ovulation)}</div>
+        <div class="sub">Cycle day ${r.ovuCycleDay} of ${r.cycleLen}</div>
+      </div>
+      <div class="result-grid">
+        <div class="result-cell"><div class="k">Fertile window</div><div class="v peak">${formatShort(r.fertileStart)} – ${formatShort(r.fertileEnd)}</div></div>
+        <div class="result-cell"><div class="k">Peak days</div><div class="v peak">${formatShort(r.peakStart)} – ${formatShort(r.peakEnd)}</div></div>
+        <div class="result-cell"><div class="k">Next period</div><div class="v">${formatShort(r.nextPeriod)}</div></div>
+        <div class="result-cell"><div class="k">Conception odds</div><div class="v ok">${r.odds}</div></div>
+        <div class="result-cell"><div class="k">Accuracy</div><div class="v">${r.accuracy}</div></div>
+        <div class="result-cell"><div class="k">Method</div><div class="v">${methodLabel}</div></div>
+      </div>
+
+      <div class="cycle-bar-wrap">
+        <div class="cycle-bar-label"><span>Cycle timeline</span><span>${r.cycleLen} days</span></div>
+        ${buildCycleBar(r.segments)}
+        <div class="cycle-legend">
+          <span><i style="background:var(--period)"></i> Period</span>
+          <span><i style="background:#E0E7FF"></i> Follicular</span>
+          <span><i style="background:var(--fertile)"></i> Fertile</span>
+          <span><i style="background:var(--ovu)"></i> Ovulation</span>
+          <span><i style="background:#F1F5F9;border:1px solid var(--line)"></i> Luteal</span>
+        </div>
+      </div>
+
+      <h3 style="font-size:14px;font-weight:800;margin-bottom:10px">This cycle at a glance</h3>
+      ${buildCalendar(r.days)}
+
+      <h3 style="font-size:14px;font-weight:800;margin:18px 0 10px">Summary</h3>
+      <table class="summary-table">
+        <tr><td>Last period (LMP)</td><td>${formatDate(r.lmp)}</td></tr>
+        <tr><td>Cycle length</td><td>${r.cycleLen} days</td></tr>
+        <tr><td>Regularity</td><td>${regularLabel}</td></tr>
+        <tr><td>Ovulation (predicted)</td><td>${formatDate(r.ovulation)}</td></tr>
+        <tr><td>Full fertile window</td><td>${formatDate(r.fertileStart)} – ${formatDate(r.fertileEnd)}</td></tr>
+        <tr><td>Peak conception days</td><td>${formatDate(r.peakStart)} – ${formatDate(r.peakEnd)}</td></tr>
+        <tr><td>Next period (est.)</td><td>${formatDate(r.nextPeriod)}</td></tr>
+        <tr><td>Natural conception odds</td><td>${r.odds}</td></tr>
+      </table>
+      <p class="tip-box"><strong>Tip:</strong> ${r.methodTip}</p>
+      <p class="note-box"><strong>Note:</strong> ${r.advice} For educational purposes only — consult your healthcare provider for personalized fertility guidance.</p>
+      <div class="btn-row" style="margin-top:14px">
+        <button type="button" class="btn-ghost" id="btnCopy">Copy results</button>
+      </div>`;
+
+    res.classList.add('show');
+    btn.disabled=false;
+    window._lastResult=res.innerText;
+    byId('btnCopy').addEventListener('click',copyResults);
+    res.scrollIntoView({behavior:'smooth',block:'nearest'});
+  }catch(err){
+    console.error(err);
+    byId('btnCalc').disabled=false;
+    alert('Calculation error. Please refresh and try again.');
+  }
+}
+
+function resetForm(){
+  byId('lmpDate').value='';
+  byId('cycleLength').value='28';
+  byId('customCycle').value='28';
+  byId('customCycleWrap').style.display='none';
+  byId('cycleRegular').value='regular';
+  byId('trackMethod').value='lmp';
+  byId('results').classList.remove('show');
+  byId('results').innerHTML='';
+  byId('btnCalc').disabled=false;
+}
+
+function loadExample(){
+  const d=new Date();
+  d.setDate(d.getDate()-14);
+  byId('lmpDate').value=d.toISOString().slice(0,10);
+  byId('cycleLength').value='28';
+  byId('customCycleWrap').style.display='none';
+  byId('cycleRegular').value='regular';
+  byId('trackMethod').value='lmp';
+  calculate();
+}
+
+function copyResults(){
+  const t=window._lastResult||'';
+  if(!t)return;
+  navigator.clipboard.writeText(t.replace(/\s+/g,' ').trim()).then(()=>alert('Copied!')).catch(()=>{});
+}
+
+function toggleCustomCycle(){
+  const show=byId('cycleLength').value==='custom';
+  byId('customCycleWrap').style.display=show?'block':'none';
+}
+
+let adsLoaded=false;
+function loadAd(boxId,opts){
+  return new Promise(resolve=>{
+    const box=byId(boxId);
+    if(!box){resolve();return;}
+    window.atOptions=opts;
+    const s=document.createElement('script');
+    s.src='https://www.highperformanceformat.com/'+opts.key+'/invoke.js';
+    s.async=true;
+    s.onload=()=>setTimeout(resolve,150);
+    s.onerror=resolve;
+    box.appendChild(s);
+  });
+}
+async function loadAds(){
+  if(adsLoaded)return;
+  adsLoaded=true;
+  await loadAd('ad-top',{key:'b31a21d357a574f5abfe948e08497cc3',format:'iframe',height:90,width:728,params:{}});
+  await loadAd('ad-sidebar',{key:'5b2625d96c11d7b599cea160717bc0f6',format:'iframe',height:250,width:300,params:{}});
+}
+
+function init(){
+  const d=new Date();
+  d.setDate(d.getDate()-14);
+  byId('lmpDate').value=d.toISOString().slice(0,10);
+
+  byId('cycleLength').addEventListener('change',()=>{toggleCustomCycle();calculate();});
+  ['lmpDate','customCycle','cycleRegular','trackMethod'].forEach(id=>{
+    byId(id).addEventListener('change',calculate);
+  });
+  byId('lmpDate').addEventListener('keydown',e=>{if(e.key==='Enter')calculate();});
+  calculate();
+  loadAds();
+}
+
+window.calculate=calculate;
+window.resetForm=resetForm;
+window.loadExample=loadExample;
+window.copyResults=copyResults;
+
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);
+else init();
+</script>
+</body>
+</html>
